@@ -8,7 +8,7 @@ mkdir -p $ans
 for file in $tst/c*.txt
 do
      f=`basename $file`
-     echo -n "."
+     echo "$file"
      java MiniC.MiniC $file > $ans/s_$f
      diff -u --ignore-all-space --ignore-blank-lines $ans/s_$f $sol/s_$f > /dev/null
      if [ "$?" -eq 1 ]
