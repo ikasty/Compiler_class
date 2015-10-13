@@ -7,27 +7,54 @@ public final class Scanner {
 
   private SourceFile sourceFile;
 
-  private char currentChar;
-  private boolean verbose;
-  private StringBuffer currentLexeme;
-  private boolean currentlyScanningToken;
-  private int currentLineNr;
-  private int currentColNr;
-  private State currentState;
+  private final class State {
+    private char posChar;
+    private StringBuffer lexeme;
+    private int lineNr;
+    private int colNr;
+    private Status status;
 
+    public State() {
+      this.lineNr = 1;
+      this.colNr = 1;
+    }
+
+    // copy constructor
+    public State(State other) {
+      this.posChar = other.posChar;
+      this.lexeme = new StringBuffer(other.lexeme.toString());
+      this.lineNr = other.lineNr;
+      this.colNr = other.colNr;
+      this.status = other.status;
+    }
+
+    public boolean addCurrentChar = true;
+    public void takeIt() {
+      if (this.addCurrentChar) this.lexeme.append(this.posChar);
+      this.addCurrentChar = true;
+    }
+
+    public void setLine() {
+      if (this.posChar == '\n') {
+        this.lineNr++;
+        this.colNr = 0;
+      }
+      this.colNr++;
+    }
+  }
+
+  private State currentState, origState;
+
+  private boolean verbose;
   // buffer values
-  private int tempLine, tempCol;
-  private char tempChar;
-  private StringBuffer tempLexeme;
-  private State tempState, origState;
   private StringBuffer buffer;
 
-  private static final int NEEDS_CHECK = 100;// 37 is temporary. NEEDS CHANGE
+  private static final int NEEDS_CHECK = 100;
   private static final int WHITESPACES = 200;
   private static final int ERRORS = 36;
   private static final int UNACCEPTABLE = 300;
 
-  private enum State {
+  private enum Status {
     init(),
     // id, integer, float
     ID(0), Integer(15), exp(), exp_pm(), Float_with_exp(16), frac(), Float_frac(16),
@@ -56,8 +83,8 @@ public final class Scanner {
     EOF(37);
 
     private int value;
-    private State(int value) { this.value = value; }
-    private State() { this.value = UNACCEPTABLE; }
+    private Status(int value) { this.value = value; }
+    private Status() { this.value = UNACCEPTABLE; }
     public int getValue() { return this.value; }
 
     public boolean isWhitespace() { return this.value == WHITESPACES; }
@@ -72,16 +99,8 @@ public final class Scanner {
   public Scanner(SourceFile source) {
     sourceFile = source;
     verbose = false;
-
-    currentLineNr = 1;
-    currentColNr = 1;
-
-    useCurrentChar = true;
-
-    // temp lexeme
-    tempLexeme = new StringBuffer("");
-    buffer = new StringBuffer("");
-    tempCol = -1;
+    buffer = new StringBuffer();
+    currentState = new State();
 
     readChar();
   }
@@ -97,21 +116,21 @@ public final class Scanner {
     pos = new SourcePos();
 
     do {
-      currentLexeme  = new StringBuffer("");
+      currentState.lexeme = new StringBuffer("");
 
-      pos.StartLine  = currentLineNr;
-      pos.EndLine    = currentLineNr;
-      pos.StartCol   = currentColNr;
+      pos.StartLine  = currentState.lineNr;
+      pos.EndLine    = currentState.lineNr;
+      pos.StartCol   = currentState.colNr;
 
-      currentState = State.init;
+      currentState.status = Status.init;
       scanToken();
 
-      pos.EndCol     = currentColNr - 1;
+      pos.EndCol     = currentState.colNr - 1;
 
     // skip comments and whitespaces
-    } while (currentState.isWhitespace());
+    } while (currentState.status.isWhitespace());
 
-    currentToken = new Token(currentState.getValue(), currentLexeme.toString(), pos);
+    currentToken = new Token(currentState.status.getValue(), currentState.lexeme.toString(), pos);
 
     if (verbose) currentToken.print();
     return currentToken;
@@ -120,67 +139,39 @@ public final class Scanner {
 //////////////////////////////////////
 // character read
 
-  private void setLine() {
-    if (currentChar == '\n') {
-      currentColNr = 0;
-      currentLineNr++;
-    }
-    currentColNr++;
-//System.out.format("col nr to %d\n", currentColNr);
-  }
-
-  private boolean useCurrentChar;
   private void takeIt() {
     acceptLexeme();
-    setLine();
-    if (useCurrentChar) currentLexeme.append(currentChar);
-    useCurrentChar = true;
+    currentState.setLine();
+    currentState.takeIt();
   }
 
   private void lookAt() {
-    setStage();
-    setLine();
-    if (useCurrentChar) tempLexeme.append(currentChar);
-    useCurrentChar = true;
+    if (origState == null) origState = new State(currentState);
+
+    currentState.setLine();
+    currentState.takeIt();
   }
 
   private void acceptLexeme() {
-    currentLexeme.append(tempLexeme.toString());
-    tempLexeme.setLength(0);
-    tempCol = -1;
+    if (origState != null) origState = null;
   }
 
   private void rejectLexeme() {
-    if (tempLexeme.length() > 0) {
-      buffer.insert(0, currentChar);
-      buffer.insert(0, tempLexeme.substring(1));
-      tempLexeme.setLength(0);
+    if (origState == null) return ;
+    buffer.insert(0, currentState.posChar);
+    if (origState.lexeme.length() < currentState.lexeme.length()) {
+      buffer.insert(0, currentState.lexeme.substring( origState.lexeme.length() + 1 ));
     }
-  }
-
-  private void setStage() {
-    if (tempCol != -1) return ;
-    tempCol  = currentColNr;
-    tempLine = currentLineNr;
-    tempChar = currentChar;
-    tempState = origState;
-  }
-
-  private void resetStage() {
-    if (tempCol == -1) return ;
-    currentColNr = tempCol;
-    currentLineNr = tempLine;
-    currentChar = tempChar;
-    currentState = tempState;
-    tempCol = -1;
+    currentState = new State(origState);
+    origState = null;
   }
 
   private void readChar() {
     if (buffer.length() > 0) {
-      currentChar = buffer.charAt(0);
+      currentState.posChar = buffer.charAt(0);
       buffer.deleteCharAt(0);
     } else {
-      currentChar = sourceFile.readChar();
+      currentState.posChar = sourceFile.readChar();
     }
   }
 
@@ -188,25 +179,30 @@ public final class Scanner {
 // currentChar groups
 
   private boolean isDigit() {
-    return currentChar >= '0' && currentChar <= '9';
+    char pChar = currentState.posChar;
+    return pChar >= '0' && pChar <= '9';
   }
   private boolean isLetter() {
-    return (currentChar >= 'a' && currentChar <= 'z') ||
-           (currentChar >= 'A' && currentChar <= 'Z') ||
-            currentChar == '_';
+    char pChar = currentState.posChar;
+    return (pChar >= 'a' && pChar <= 'z') ||
+           (pChar >= 'A' && pChar <= 'Z') ||
+            pChar == '_';
   }
   private boolean isExp() {
-    return currentChar == 'e' || currentChar == 'E';
+    char pChar = currentState.posChar;
+    return pChar == 'e' || pChar == 'E';
   }
   private boolean isWhitespace() {
-    return currentChar == ' '  ||
-           currentChar == '\f' ||
-           currentChar == '\r' ||
-           currentChar == '\t' ||
-           currentChar == '\n';
+    char pChar = currentState.posChar;
+    return pChar == ' '  ||
+           pChar == '\f' ||
+           pChar == '\r' ||
+           pChar == '\t' ||
+           pChar == '\n';
   }
   private boolean isSeparator() {
-    switch (currentChar) {
+    char pChar = currentState.posChar;
+    switch (pChar) {
     case '[': case ']': case '{': case '}': case '(': case ')': case ';': case ',':
       return true;
     default:
@@ -214,7 +210,8 @@ public final class Scanner {
     }
   }
   private boolean isUseNewline() {
-    switch (currentState) {
+    Status status = currentState.status;
+    switch (status) {
     case init: case comment_in: case comment_blk_in:
     case comment_blk_end: case string_temp: case escape:
       return true;
@@ -223,7 +220,8 @@ public final class Scanner {
     }
   }
   private boolean isUseNull() {
-    switch (currentState) {
+    Status status = currentState.status;
+    switch (status) {
     case init: case comment_blk_in: case comment_blk_end:
       return true;
     default:
@@ -234,239 +232,240 @@ public final class Scanner {
 //////////////////////////////////////////////
 
   private void scanToken() {
-    boolean onState = true;
+    boolean onStatus = true;
+    Status nextStatus = currentState.status;
 
     // FSM
-    while (onState) {
-      origState = currentState;
+    while (onStatus) {
+      char currentChar = currentState.posChar;
 
-//      System.out.format("Current state: %s. currentChar = [%c]\n", currentState.name(), currentChar);
+//      System.out.format("Current state: %s. currentChar = [%c]\n", currentState.status.name(), currentChar);
 
       if ( (currentChar == '\n' && !isUseNewline()) ||
            (currentChar == '\u0000' && !isUseNull()) ) {
-        onState = false;
+        onStatus = false;
         break;
       }
 
-      switch (currentState) {
+      switch (currentState.status) {
       case init:
-             if (isDigit())      { currentState = State.Integer;     }
-        else if (isLetter())     { currentState = State.ID;          }
-        else if (isWhitespace()) { currentState = State.Whitespaces; }
-        else if (isSeparator())  { currentState = State.Separator;   }
+             if (isDigit())      { nextStatus = Status.Integer;     }
+        else if (isLetter())     { nextStatus = Status.ID;          }
+        else if (isWhitespace()) { nextStatus = Status.Whitespaces; }
+        else if (isSeparator())  { nextStatus = Status.Separator;   }
 
         else {
           switch (currentChar) {
           case '\u0000':
-                    currentState = State.EOF; currentChar = '$'; break;
+                    nextStatus = Status.EOF; currentState.posChar = '$'; break;
           case '*': case '+': case '-':
-                    currentState = State.Arith_op; break;
-          case '/': currentState = State.Div; break;
-          case '&': currentState = State.and_temp; break;
-          case '|': currentState = State.or_temp; break;
-          case '=': currentState = State.Assign; break;
-          case '!': currentState = State.Not; break;
-          case '"': currentState = State.string_temp; useCurrentChar = false; break;
-          case '.': currentState = State.frac; break;
+                    nextStatus = Status.Arith_op; break;
+          case '/': nextStatus = Status.Div; break;
+          case '&': nextStatus = Status.and_temp; break;
+          case '|': nextStatus = Status.or_temp; break;
+          case '=': nextStatus = Status.Assign; break;
+          case '!': nextStatus = Status.Not; break;
+          case '"': nextStatus = Status.string_temp; currentState.addCurrentChar = false; break;
+          case '.': nextStatus = Status.frac; break;
           case '<': case '>':
-                    currentState = State.GL; break;
+                    nextStatus = Status.GL; break;
 
-          default:  currentState = State.Err_token; break;
+          default:  nextStatus = Status.Err_token; break;
           }
         }
         break;
 
       case Whitespaces:
-        if (!isWhitespace()) onState = false;
+        if (!isWhitespace()) onStatus = false;
         break;
 
       case Div:
-        if (currentChar == '/') currentState = State.comment_in;
-        else if (currentChar == '*') currentState = State.comment_blk_in;
+        if (currentChar == '/') nextStatus = Status.comment_in;
+        else if (currentChar == '*') nextStatus = Status.comment_blk_in;
         break;
 
       case comment_in:
-        if (currentChar == '\n') currentState = State.Comment;
+        if (currentChar == '\n') nextStatus = Status.Comment;
         break;
 
       case comment_blk_in:
-        if (currentChar == '*') currentState = State.comment_blk_end;
-        else if (currentChar == '\u0000') currentState = State.Err_comment;
+        if (currentChar == '*') nextStatus = Status.comment_blk_end;
+        else if (currentChar == '\u0000') nextStatus = Status.Err_comment;
         break;
 
       case comment_blk_end:
-        if (currentChar == '/') currentState = State.Comment_blk;
-        else if (currentChar == '\u0000') currentState = State.Err_comment;
+        if (currentChar == '/') nextStatus = Status.Comment_blk;
+        else if (currentChar == '\u0000') nextStatus = Status.Err_comment;
         else if (currentChar != '*') {
-          // 1. accept temp lexeme
+          // 1. accept current lexeme
           acceptLexeme();
-          // 2. discard temp state
-          tempCol = -1;
-          // 3. set state to comment_blk
-          currentState = State.comment_blk_in;
+          // 2. set state to comment_blk_in
+          nextStatus = Status.comment_blk_in;
         }
         break;
 
       case ID:
-        if (!isLetter() && !isDigit()) onState = false;
+        if (!isLetter() && !isDigit()) onStatus = false;
         break;
 
       case Integer:
         if (isDigit()) break;
-        else if (currentChar == '.') currentState = State.Float_frac;
-        else if (isExp()) currentState = State.exp;
-        else onState = false;
+        else if (currentChar == '.') nextStatus = Status.Float_frac;
+        else if (isExp()) nextStatus = Status.exp;
+        else onStatus = false;
         break;
 
       case frac:
-        if (isDigit()) currentState = State.Float_frac;
-        else onState = false;
+        if (isDigit()) nextStatus = Status.Float_frac;
+        else onStatus = false;
         break;
 
       case exp:
-        if (currentChar == '+' || currentChar == '-') currentState = State.exp_pm;
-        else if (isDigit()) currentState = State.Float_with_exp;
-        else onState = false;
+        if (currentChar == '+' || currentChar == '-') nextStatus = Status.exp_pm;
+        else if (isDigit()) nextStatus = Status.Float_with_exp;
+        else onStatus = false;
         break;
 
       case exp_pm:
-        if (isDigit()) currentState = State.Float_with_exp;
-        else onState = false;
+        if (isDigit()) nextStatus = Status.Float_with_exp;
+        else onStatus = false;
         break;
 
       case Float_frac:
         if (isDigit()) break;
-        else if (isExp()) currentState = State.exp;
-        else onState = false;
+        else if (isExp()) nextStatus = Status.exp;
+        else onStatus = false;
         break;
 
       case Float_with_exp:
-        if (!isDigit()) onState = false;
+        if (!isDigit()) onStatus = false;
         break;
 
       case Not:
-        if (currentChar == '=') currentState = State.Not_eq;
-        else onState = false; break;
+        if (currentChar == '=') nextStatus = Status.Not_eq;
+        else onStatus = false; break;
 
       case and_temp:
-        if (currentChar == '&') currentState = State.And;
-        else onState = false; break;
+        if (currentChar == '&') nextStatus = Status.And;
+        else onStatus = false; break;
 
       case or_temp:
-        if (currentChar == '|') currentState = State.Or;
-        else onState = false; break;
+        if (currentChar == '|') nextStatus = Status.Or;
+        else onStatus = false; break;
 
       case Assign:
-        if (currentChar == '=') currentState = State.Compare;
-        else onState = false; break;
+        if (currentChar == '=') nextStatus = Status.Compare;
+        else onStatus = false; break;
 
       case GL:
-        if (currentChar == '=') currentState = State.GLE;
-        else onState = false; break;
+        if (currentChar == '=') nextStatus = Status.GLE;
+        else onStatus = false; break;
 
       case string_temp:
-        if (currentChar == '"')     { currentState = State.String; useCurrentChar = false; }
-        else if (currentChar == '\\') currentState = State.escape;
-        else if (currentChar == '\n') currentState = State.Err_string;
+        if (currentChar == '"')     { nextStatus = Status.String; currentState.addCurrentChar = false; }
+        else if (currentChar == '\\') nextStatus = Status.escape;
+        else if (currentChar == '\n') nextStatus = Status.Err_string;
         break;
 
       case escape:
-        if (currentChar == 'n') currentState = State.string_temp;
-        else                    currentState = State.Err_escape;
+        if (currentChar == 'n') nextStatus = Status.string_temp;
+        else                    nextStatus = Status.Err_escape;
         break;
 
       case Separator: case Arith_op: case String:
       case Not_eq: case GLE: case Compare: case And: case Or:
       case EOF: case Comment: case Comment_blk:
-        onState = false; break;
+        onStatus = false; break;
 
       default:
-        // Unknown State!
-        System.out.format("ERROR: unknown state %s\n", currentState.name());
-        onState = false;
+        // Unknown Status!
+        System.out.format("ERROR: unknown state %s\n", nextStatus.name());
+        onStatus = false;
       } // end FSM
 
       // error control
-      if (currentState.isError()) {
-        switch (currentState) {
+      if (nextStatus.isError()) {
+        switch (nextStatus) {
         case Err_escape:
           System.out.println("ERROR: illegal escape sequence");
-          currentState = State.string_temp;
+          nextStatus = Status.string_temp;
           break;
         case Err_string:
           System.out.println("ERROR: unterminated string literal");
-          currentState = State.String;
+          nextStatus = Status.String;
           acceptLexeme();
-          onState = false;
+          onStatus = false;
           break;
         case Err_comment:
           System.out.println("ERROR: unterminated multi-line comment.");
-          currentState = State.Comment_blk;
+          nextStatus = Status.Comment_blk;
           acceptLexeme();
-          onState = false;
+          onStatus = false;
           break;
         case Err_token:
           takeIt();
-          onState = false;
+          onStatus = false;
           break;
         }
       }
 
-      if (!onState) {
-        if (tempState != null && tempState.isAccepted()) {
-          rejectLexeme();
-          resetStage();
+      // exit check
+      if (!onStatus) {
+        currentState.status = nextStatus;
+        if (origState != null && origState.status.isAccepted()) {
+          rejectLexeme(); 
         }
         break;
       }
 
-      if (currentState.isAccepted()) {
+      // take it or look at
+      if (nextStatus.isAccepted()) {
         takeIt();
       } else {
         lookAt();
       }
 
+      currentState.status = nextStatus;
       readChar();
     } // while
 
     // post check
-    if (!currentState.isAccepted()) {
+    if (!currentState.status.isAccepted()) {
       acceptLexeme();
-      currentState = State.Err_token;
+      currentState.status = Status.Err_token;
     }
-    if (currentState == State.ID || currentState.isNeedCheck()) {
-      switch (currentLexeme.toString()) {
-      case "bool":   currentState = State.BOOL;    break;
-      case "else":   currentState = State.ELSE;    break;
-      case "float":  currentState = State.FLOAT;   break;
-      case "for":    currentState = State.FOR;     break;
-      case "if":     currentState = State.IF;      break;
-      case "int":    currentState = State.INT;     break;
-      case "return": currentState = State.RETURN;  break;
-      case "void":   currentState = State.VOID;    break;
-      case "while":  currentState = State.WHILE;   break;
+    if (currentState.status == Status.ID || currentState.status.isNeedCheck()) {
+      switch (currentState.lexeme.toString()) {
+      case "bool":   currentState.status = Status.BOOL;    break;
+      case "else":   currentState.status = Status.ELSE;    break;
+      case "float":  currentState.status = Status.FLOAT;   break;
+      case "for":    currentState.status = Status.FOR;     break;
+      case "if":     currentState.status = Status.IF;      break;
+      case "int":    currentState.status = Status.INT;     break;
+      case "return": currentState.status = Status.RETURN;  break;
+      case "void":   currentState.status = Status.VOID;    break;
+      case "while":  currentState.status = Status.WHILE;   break;
 
       case "true":
-      case "false":  currentState = State.BOOLLITERAL; break;
+      case "false":  currentState.status = Status.BOOLLITERAL; break;
 
-      case "<":      currentState = State.LESS;      break;
-      case ">":      currentState = State.GREATER;   break;
-      case "<=":     currentState = State.LESSEQ;    break;
-      case ">=":     currentState = State.GREATEREQ; break;
-      case "+":      currentState = State.PLUS;      break;
-      case "-":      currentState = State.MINUS;     break;
-      case "*":      currentState = State.TIMES;     break;
+      case "<":      currentState.status = Status.LESS;      break;
+      case ">":      currentState.status = Status.GREATER;   break;
+      case "<=":     currentState.status = Status.LESSEQ;    break;
+      case ">=":     currentState.status = Status.GREATEREQ; break;
+      case "+":      currentState.status = Status.PLUS;      break;
+      case "-":      currentState.status = Status.MINUS;     break;
+      case "*":      currentState.status = Status.TIMES;     break;
 
-      case "{":      currentState = State.LEFTBRACE;    break;
-      case "}":      currentState = State.RIGHTBRACE;   break;
-      case "[":      currentState = State.LEFTBRACKET;  break;
-      case "]":      currentState = State.RIGHTBRACKET; break;
-      case "(":      currentState = State.LEFTPAREN;    break;
-      case ")":      currentState = State.RIGHTPAREN;   break;
-      case ",":      currentState = State.COMMA;        break;
-      case ";":      currentState = State.SEMICOLON;    break;
+      case "{":      currentState.status = Status.LEFTBRACE;    break;
+      case "}":      currentState.status = Status.RIGHTBRACE;   break;
+      case "[":      currentState.status = Status.LEFTBRACKET;  break;
+      case "]":      currentState.status = Status.RIGHTBRACKET; break;
+      case "(":      currentState.status = Status.LEFTPAREN;    break;
+      case ")":      currentState.status = Status.RIGHTPAREN;   break;
+      case ",":      currentState.status = Status.COMMA;        break;
+      case ";":      currentState.status = Status.SEMICOLON;    break;
       }
-    }
-    // post check end 
-  }
+    } // post check end
+  } // end function
 } // end class
