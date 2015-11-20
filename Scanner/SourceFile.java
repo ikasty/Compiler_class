@@ -17,7 +17,7 @@ public class SourceFile {
     }
   }
 
-  char readChar()
+  public char readChar()
   {
      try {
         int c = source.read();

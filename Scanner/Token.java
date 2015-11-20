@@ -5,7 +5,7 @@ import MiniC.Scanner.SourcePos;
 final public class Token extends Object {
 
   public int kind;
-  private SourcePos src_pos;
+  protected SourcePos src_pos;
   private String lexeme;
   private static int overall_nrtokens = 0;
   private int my_tokennr;
@@ -105,8 +105,8 @@ final public class Token extends Object {
        "AND",
        "NOT",
        "EQ",
-       "NOT_EQ",
-       "LESS_EQ",
+       "NOTEQ",
+       "LESSEQ",
        "LESS",
        "GREATER",
        "GREATEREQ",
@@ -139,7 +139,60 @@ final public class Token extends Object {
        "EOF"
     };
 
+    private static String[] lexemeTable = new String[] {
+       "ID",
+       "=",
+       "||",
+       "&&",
+       "!",
+       "==",
+       "!=",
+       "<=",
+       "<",
+       ">",
+       ">=",
+       "+",
+       "-",
+       "*",
+       "/",
+       "INTLITERAL",
+       "FLOATLITERAL",
+       "BOOLLITERAL",
+       "STRINGLITERAL",
+       "bool",
+       "else",
+       "float",
+       "for",
+       "if",
+       "int",
+       "return",
+       "void",
+       "while",
+       "{",
+       "}",
+       "[",
+       "]",
+       "(",
+       ")",
+       ",",
+       ";",
+       "ERROR",
+       "EOF"
+    };
+
     private final static int firstKeyword = Token.BOOL,
                              lastKeyword = Token.WHILE;
+
+    public static String spell (int kind) {
+	return lexemeTable[kind];
+    }
+
+    public SourcePos GetSourcePos() {
+	return src_pos;
+    } 
+
+    public String GetLexeme() {
+	return lexeme;
+    } 
 
 }

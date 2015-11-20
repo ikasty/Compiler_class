@@ -37,17 +37,20 @@ JC = javac
 
 SRC = \
         MiniC.java \
+        ErrorReporter.java \
         Scanner/Scanner.java \
         Scanner/SourceFile.java \
         Scanner/SourcePos.java \
-        Scanner/Token.java
+        Scanner/Token.java \
+        Parser/Parser.java \
+        Parser/SyntaxError.java
 
-# the default make target entry
-# for this example it is the target classes
+# The default make target entry.
+# For this example it is the target 'classes'.
 
 default: classes
 
-# Next line is a macro that specifies the class files of the scanner.
+# Next line is a macro that specifies the class files of our target program.
 # We use Suffix Replacement within a macro: 
 # $(macroname:string1=string2)
 # In the words in the macro named 'macroname' replace 'string1' with 'string2'
