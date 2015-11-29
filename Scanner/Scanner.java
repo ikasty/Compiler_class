@@ -135,7 +135,9 @@ public final class Scanner {
     if (verbose) currentToken.print();
     return currentToken;
   }
-
+    void debug(String message) {
+        System.out.printf("DEBUG] %s\n", message);
+    }
 //////////////////////////////////////
 // character read
 
@@ -282,6 +284,7 @@ public final class Scanner {
       case Div:
         if (currentChar == '/') nextStatus = Status.comment_in;
         else if (currentChar == '*') nextStatus = Status.comment_blk_in;
+        else onStatus = false;
         break;
 
       case comment_in:
