@@ -22,14 +22,17 @@ public class Parser {
 
     // for debug
     void debug(String message) {
-        System.out.printf("DEBUG] %s\n", message);
+//        System.out.printf("DEBUG] %s\n", message);
+    }
+    void debug() {
+//        currentToken.print();
     }
 
     // accept() checks whether the current token matches tokenExpected.
     // If so, it fetches the next token.
     // If not, it reports a syntax error.
     void accept (int tokenExpected) throws SyntaxError {
-        if (currentToken.kind == tokenExpected) {
+        if (currentToken.kind == tokenExpected) {debug();
             previousTokenPosition = currentToken.GetSourcePos();
             currentToken = scanner.scan();
         } else {
@@ -39,7 +42,7 @@ public class Parser {
 
     // acceptIt() unconditionally accepts the current token
     // and fetches the next token from the scanner.
-    void acceptIt() {
+    void acceptIt() {debug();
         previousTokenPosition = currentToken.GetSourcePos();
         currentToken = scanner.scan();
     }
@@ -112,7 +115,7 @@ public class Parser {
     //
     ///////////////////////////////////////////////////////////////////////////////
 
-    public Program parseProgram() throws SyntaxError {
+    public Program parseProgram() throws SyntaxError {debug("program");
         SourcePos pos = new SourcePos();
         start(pos);
         Decl D = parseProgramHelper();
@@ -194,7 +197,7 @@ public class Parser {
     //
     ///////////////////////////////////////////////////////////////////////////////
 
-    public FunDecl parseFunction_def(Type T, ID Ident, SourcePos pos) throws SyntaxError {
+    public FunDecl parseFunction_def(Type T, ID Ident, SourcePos pos) throws SyntaxError {debug("function_def");
         accept(Token.LEFTPAREN);
         Decl PDecl = parseParams_list(); // can also be empty...
         accept(Token.RIGHTPAREN);
@@ -293,7 +296,7 @@ public class Parser {
     //
     ///////////////////////////////////////////////////////////////////////////////
 
-    public DeclSequence parseVariable_def(Type T, ID Ident, SourcePos pos) throws SyntaxError {
+    public DeclSequence parseVariable_def(Type T, ID Ident, SourcePos pos) throws SyntaxError {debug("variable-def");
         Type theType = T;
         Decl D;
         DeclSequence Seq;
@@ -369,7 +372,7 @@ public class Parser {
     //
     //////////////////////////////////////////////////////////////////////////////
 
-    public Expr parseInitializer() throws SyntaxError {
+    public Expr parseInitializer() throws SyntaxError {debug("initializer");
         if (currentToken.kind == Token.LEFTBRACE) {
             acceptIt();
             Expr E = new ExprSequence(parseExpr(), parseInitializerHelper(), previousTokenPosition);
@@ -397,7 +400,7 @@ public class Parser {
     //
     ///////////////////////////////////////////////////////////////////////////////
 
-    public Expr parseExpr() throws SyntaxError {
+    public Expr parseExpr() throws SyntaxError {debug("expr");
         return parseOr_expr();
     }
 
@@ -423,26 +426,25 @@ public class Parser {
     // parseOr_expr():
     //
     // or-expr ::= and-expr ("||" and-expr)*
-    //         ::= and-expr ("||" or-expr)?
     //
     ///////////////////////////////////////////////////////////////////////////////
 
-    public Expr parseOr_expr() throws SyntaxError {
+    public Expr parseOr_expr() throws SyntaxError {debug("or-expr");
         SourcePos pos = getNewPos();
-        Expr E = parseAnd_expr();
+        Expr LE = parseAnd_expr();
 
-        return parseOr_exprHelper(E, pos);
+        return parseOr_exprHelper(LE, pos);
     }
 
     Expr parseOr_exprHelper(Expr LE, SourcePos pos) throws SyntaxError {
         if (currentToken.kind == Token.OR) {
             Operator oper = parseOperator();
-            Expr RE = parseOr_expr();
-
+            Expr RE = parseAnd_expr();
             finish(pos);
-            return new BinaryExpr(LE, oper, RE, pos);
+            
+            LE = new BinaryExpr(LE, oper, RE, pos);
+            return parseOr_exprHelper(LE,  getNewPos());
         }
-
         return LE;
     }
 
@@ -451,26 +453,25 @@ public class Parser {
     // parseAnd_expr():
     //
     // and-expr ::= rel-expr ("&&" rel-expr)*
-    //          ::= rel-expr ("&&" and-expr)?
     //
     ///////////////////////////////////////////////////////////////////////////////
 
-    public Expr parseAnd_expr() throws SyntaxError {
+    public Expr parseAnd_expr() throws SyntaxError {debug("and-expr");
         SourcePos pos = getNewPos();
-        Expr E = parseRel_expr();
+        Expr LE = parseRel_expr();
 
-        return parseAnd_exprHelper(E, pos);
+        return parseAnd_exprHelper(LE, pos);
     }
 
     Expr parseAnd_exprHelper(Expr LE, SourcePos pos) throws SyntaxError {
         if (currentToken.kind == Token.AND) {
             Operator oper = parseOperator();
-            Expr RE = parseAnd_expr();
-
+            Expr RE = parseRel_expr();
             finish(pos);
-            return new BinaryExpr(LE, oper, RE, pos);
+            
+            LE = new BinaryExpr(LE, oper, RE, pos);
+            return parseAnd_exprHelper(LE,  getNewPos());
         }
-
         return LE;
     }
 
@@ -482,7 +483,7 @@ public class Parser {
     //
     ///////////////////////////////////////////////////////////////////////////////
 
-    public Expr parseRel_expr() throws SyntaxError {
+    public Expr parseRel_expr() throws SyntaxError {debug("rel-expr");
         SourcePos pos = getNewPos();
         Expr LE = parseAdd_expr();
 
@@ -511,27 +512,26 @@ public class Parser {
     // parseAdd_expr():
     //
     // add-expr ::= mult-expr (("+" | "-") mult-expr)*
-    //          ::= mult-expr ([mult-oper] add-expr)?
     //
     ///////////////////////////////////////////////////////////////////////////////
 
-    public Expr parseAdd_expr() throws SyntaxError {
+    public Expr parseAdd_expr() throws SyntaxError {debug("add-expr");
         SourcePos pos = getNewPos();
-        Expr E = parseMult_expr();
+        Expr LE = parseMult_expr();
 
-        return parseAdd_exprHelper(E, pos);
+        return parseAdd_exprHelper(LE, pos);
     }
 
     Expr parseAdd_exprHelper(Expr LE, SourcePos pos) throws SyntaxError {
         if (currentToken.kind == Token.PLUS ||
             currentToken.kind == Token.MINUS) {
             Operator oper = parseOperator();
-            Expr RE = parseAdd_expr();
-
+            Expr RE = parseMult_expr();
             finish(pos);
-            return new BinaryExpr(LE, oper, RE, pos);
+            
+            LE = new BinaryExpr(LE, oper, RE, pos);
+            return parseAdd_exprHelper(LE,  getNewPos());
         }
-
         return LE;
     }
 
@@ -540,27 +540,26 @@ public class Parser {
     // parseMult_expr():
     //
     // mult-expr ::= unary-expr (("*" | "/") unary-expr)*
-    //           ::= unary-expr ([mult-oper] mult-expr)?
     //
     ///////////////////////////////////////////////////////////////////////////////
 
-    public Expr parseMult_expr() throws SyntaxError {
+    public Expr parseMult_expr() throws SyntaxError {debug("mult-expr");
         SourcePos pos = getNewPos();
-        Expr E = parseUnary_expr();
+        Expr LE = parseUnary_expr();
 
-        return parseMult_exprHelper(E, pos);
+        return parseMult_exprHelper(LE, pos);
     }
 
     Expr parseMult_exprHelper(Expr LE, SourcePos pos) throws SyntaxError {
         if (currentToken.kind == Token.TIMES ||
             currentToken.kind == Token.DIV) {
             Operator oper = parseOperator();
-            Expr RE = parseMult_expr();
-
+            Expr RE = parseUnary_expr();
             finish(pos);
-            return new BinaryExpr(LE, oper, RE, pos);
+            
+            LE = new BinaryExpr(LE, oper, RE, pos);
+            return parseMult_exprHelper(LE,  getNewPos());
         }
-
         return LE;
     }
 
@@ -572,21 +571,19 @@ public class Parser {
     //
     ///////////////////////////////////////////////////////////////////////////////
 
-    public UnaryExpr parseUnary_expr() throws SyntaxError {
-        SourcePos pos = getNewPos();
-        Operator oper = parseOperator();
-        Expr E;
-
+    public Expr parseUnary_expr() throws SyntaxError {debug("unary-expr");
         if (currentToken.kind == Token.PLUS  ||
             currentToken.kind == Token.MINUS ||
             currentToken.kind == Token.NOT) {
-            E = parseUnary_expr();
-        } else {
-            E = parsePrim_expr();
-        }
+            SourcePos pos = getNewPos();
+            Operator oper = parseOperator();
+            Expr E = parseUnary_expr();
 
-        finish(pos);
-        return new UnaryExpr(oper, E, pos);
+            finish(pos);
+            return new UnaryExpr(oper, E, pos);
+        } else {
+            return parsePrim_expr();
+        }
     }
 
     ///////////////////////////////////////////////////////////////////////////////
@@ -597,27 +594,34 @@ public class Parser {
     //
     ///////////////////////////////////////////////////////////////////////////////
 
-    public Expr parsePrim_expr() throws SyntaxError {
+    public Expr parsePrim_expr() throws SyntaxError {debug("prim-expr");
         SourcePos pos = getNewPos();
 
         switch (currentToken.kind) {
         case Token.ID:
-            VarExpr varexpr = parseVarExpr();
+            ID Ident = parseID();
 
             if (currentToken.kind == Token.LEFTBRACKET) {
                 // array
+                VarExpr varexpr = parseVarExpr(Ident);
                 acceptIt();
                 Expr E = parseExpr();
                 accept(Token.RIGHTBRACKET);
 
                 finish(pos);
                 return new ArrayExpr(varexpr, E, pos);
+            } else if ( isArglist() ) {
+                // function call
+                Expr param = parseArglist();
+
+                finish(pos);
+                return new CallExpr(Ident, param, pos);
             } else {
                 // normal variant
-                return varexpr;
+                return parseVarExpr(Ident);
             }
 
-        case Token.LEFTPAREN:
+        case Token.LEFTPAREN:debug("prim-expr parentheses");
             acceptIt();
             Expr E = parseExpr();
             accept(Token.RIGHTPAREN);
@@ -641,7 +645,7 @@ public class Parser {
     //
     ///////////////////////////////////////////////////////////////////////////////
 
-    public CompoundStmt parseCompound_stmt() throws SyntaxError {
+    public CompoundStmt parseCompound_stmt() throws SyntaxError {debug("compound-stmt");
         SourcePos pos = new SourcePos();
         start(pos);
         accept(Token.LEFTBRACE);
@@ -693,7 +697,7 @@ public class Parser {
     //
     ///////////////////////////////////////////////////////////////////////////////
 
-    public Stmt parseStmt() throws SyntaxError {
+    public Stmt parseStmt() throws SyntaxError {debug("stmt");
         switch (currentToken.kind) {
             case Token.LEFTBRACE:   return parseCompound_stmt();
             case Token.IF:          return parseIf_stmt();
@@ -824,7 +828,7 @@ public class Parser {
     //
     ///////////////////////////////////////////////////////////////////////////////
 
-    public Stmt parseCalc_stmt() throws SyntaxError {
+    public Stmt parseCalc_stmt() throws SyntaxError {debug("calc-stmt");
         SourcePos pos = getNewPos();
 
         ID Ident = parseID();
@@ -838,7 +842,7 @@ public class Parser {
             CallExpr callexpr = new CallExpr(Ident, param, pos);
             return new CallStmt(callexpr, pos);
         }
-
+debug("calc-stmt assign mode");
         // assign stmt        
         Expr asgnExpr = parseCalc_stmtHelper(Ident);
         accept(Token.ASSIGN);
@@ -923,7 +927,7 @@ public class Parser {
         return Ident;
     }
 
-    public IntLiteral parseIntLiteral() throws SyntaxError {
+    public IntLiteral parseIntLiteral() throws SyntaxError {debug("intliteral");
         IntLiteral L = new IntLiteral
             (currentToken.GetLexeme(), currentToken.GetSourcePos());
         accept(Token.INTLITERAL);
@@ -967,7 +971,11 @@ public class Parser {
         return new VarExpr(parseID(), currentToken.GetSourcePos());
     }
 
-    public IntExpr parseIntExpr() throws SyntaxError {
+    public VarExpr parseVarExpr(ID Ident) throws SyntaxError {
+        return new VarExpr(Ident, currentToken.GetSourcePos());
+    }
+
+    public IntExpr parseIntExpr() throws SyntaxError {debug("intexpr");
         return new IntExpr (parseIntLiteral(), currentToken.GetSourcePos());
     }
 
