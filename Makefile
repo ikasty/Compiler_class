@@ -1,4 +1,5 @@
 # define a variable for compiler flags (JFLAGS)
+# -source 1.4: enable support for sourcecode containing assert statements. 
 # define a variable for the compiler (JC)  
 #
 
@@ -51,9 +52,13 @@ SRC = \
     Scanner/Token.java \
     Scanner/Scanner.java \
     Scanner/SourcePos.java \
+    SemanticAnalysis/IdEntry.java \
+    SemanticAnalysis/ScopeStack.java \
+    SemanticAnalysis/SemanticAnalysis.java \
     Unparser/UnparseVisitor.java \
     Unparser/Unparser.java \
     MiniC.java \
+    StdEnvironment.java \
     AstGen/StringExpr.java \
     AstGen/ExprSequence.java \
     AstGen/StmtSequence.java \

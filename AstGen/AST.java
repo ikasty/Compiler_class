@@ -4,19 +4,19 @@ import MiniC.Scanner.SourcePos;
 
 public abstract class AST {
 
+    public SourcePos pos;
+
     public AST (SourcePos pos) {
-        position = new SourcePos();
-	position.StartCol = pos.StartCol;
-	position.EndCol = pos.EndCol;
-	position.StartLine = pos.StartLine;
-	position.EndLine = pos.EndLine;
+        this.pos = new SourcePos();
+        this.pos.StartCol = pos.StartCol;
+        this.pos.EndCol = pos.EndCol;
+        this.pos.StartLine = pos.StartLine;
+        this.pos.EndLine = pos.EndLine;
     }
 
     public SourcePos getPosition() {
-	return position;
+	return pos;
     }
 
     public abstract void accept(Visitor v);
-
-    public SourcePos position;
 }

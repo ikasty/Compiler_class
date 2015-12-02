@@ -36,14 +36,11 @@ public class UnparseVisitor implements Visitor {
     }
 
     public void visit(Program x) {
-        if (x.D.getClass() != EmptyDecl.class) {
-	    x.D.accept(this);
-        }
+	x.D.accept(this);
 	write("\n");
     }
 
     public void visit(EmptyDecl x) {
-        assert (false);
     }
 
     public void visit(FunDecl x) {
@@ -57,12 +54,15 @@ public class UnparseVisitor implements Visitor {
 	write(" ");
 	x.idAST.accept(this);
         write ("(");
-        if (x.paramsAST.getClass() == FormalParamDeclSequence.class) {
-	    x.paramsAST.accept(this);
-        }
+	x.paramsAST.accept(this);
 	write (")");
 	x.stmtAST.accept(this);
 	IsGlobal = true;
+    }
+
+    public void visit(TypeDecl x) {
+        assert(false); // only occurs in the StdEnvironment AST!
+        //x.tAST.accept(this);
     }
 
     public void visit(FormalParamDecl x) {
@@ -82,21 +82,16 @@ public class UnparseVisitor implements Visitor {
 
     public void visit(FormalParamDeclSequence x) {
 	x.lAST.accept(this);
-        if (x.rAST.getClass() == FormalParamDeclSequence.class) {
-	    write(", ");
-	    x.rAST.accept(this);
-        }
+	write(", ");
+	x.rAST.accept(this);
     }
 
     public void visit(EmptyFormalParamDecl x) {
-        assert (false);
     }
 
     public void visit(StmtSequence x) {
 	x.s1AST.accept(this);
-        if (x.s2AST.getClass() == StmtSequence.class) {
-	    x.s2AST.accept(this);
-        }
+	x.s2AST.accept(this);
     }
 
     public void visit(AssignStmt x) {
@@ -143,9 +138,7 @@ public class UnparseVisitor implements Visitor {
     public void visit(ForStmt x) {
 	newline();
 	write ("for (");
-        if (x.e1AST.getClass() != EmptyExpr.class) {
 	x.e1AST.accept(this);
-        }
 	write(";");
 	if(!(x.e2AST instanceof EmptyExpr)) {
 	    write(" ");
@@ -174,24 +167,18 @@ public class UnparseVisitor implements Visitor {
 	newline();
 	write("{");
 	indent++;
-        if (x.astDecl.getClass() == DeclSequence.class) {
-	    x.astDecl.accept(this);
-        }
-        if (x.astStmt.getClass() == StmtSequence.class) {
-	    x.astStmt.accept(this);
-        }
+	x.astDecl.accept(this);
+	x.astStmt.accept(this);
 	indent--;
 	newline();
 	write("}");
     }
 
-    public void visit(EmptyCompoundStmt x) {
-	newline();
-	write("{}");
+    public void visit(EmptyStmt x) {
     }
 
-    public void visit(EmptyStmt x) {
-        assert (false);
+    public void visit(EmptyCompoundStmt x) {
+	write("EmptyCompoundStmt\n");
     }
 
     public void visit(CallStmt x) {
@@ -215,23 +202,16 @@ public class UnparseVisitor implements Visitor {
 	    write("[");
 	    ((ArrayType)x.tAST).astExpr.accept(this);
 	    write("]");
-            if (x.eAST.getClass() == ExprSequence.class) {
-                write(" = { ");
-                x.eAST.accept(this);
-                write(" }");
-            } else if (x.eAST.getClass() != EmptyExpr.class) {
-		write(" = ");
+	    if (!(x.eAST instanceof EmptyExpr)) {
+		write(" = {");
 		x.eAST.accept(this);
+   	        write("}");
 	    }
 	} else {
 	    x.tAST.accept(this);
 	    write (" ");
 	    x.idAST.accept(this);
-            if (x.eAST.getClass() == ExprSequence.class) {
-                write(" = { ");
-                x.eAST.accept(this);
-                write(" }");
-            } else if (x.eAST.getClass() != EmptyExpr.class) {
+	    if (!(x.eAST instanceof EmptyExpr)) {
 		write(" = ");
 		x.eAST.accept(this);
 	    }
@@ -241,9 +221,7 @@ public class UnparseVisitor implements Visitor {
 
     public void visit(DeclSequence x){
 	x.D1.accept(this);
-        if (x.D2.getClass() == DeclSequence.class) {
-	   x.D2.accept(this);
-        }
+	x.D2.accept(this);
     }
 
     public void visit(VarExpr x) {
@@ -297,7 +275,6 @@ public class UnparseVisitor implements Visitor {
     }
 
     public void visit(EmptyExpr x) {
-        assert (false);
     }
 
     public void visit(ActualParam x) {
@@ -305,32 +282,25 @@ public class UnparseVisitor implements Visitor {
     }
 
     public void visit(EmptyActualParam x) {
-        assert (false);
     }
 
     public void visit(ActualParamSequence x) {
 	x.lAST.accept(this);
-        if (x.rAST.getClass() == ActualParamSequence.class) {
-	    write(", ");
-	    x.rAST.accept(this);
-        }
+	write(", ");
+	x.rAST.accept(this);
     }
 
     public void visit(CallExpr x) {
 	x.idAST.accept(this);
 	write("(");
-        if (x.paramAST.getClass() == ActualParamSequence.class) {
-	    x.paramAST.accept(this);
-        }
+	x.paramAST.accept(this);
 	write(")");
     }
 
     public void visit(ExprSequence x) {
 	x.lAST.accept(this);
-        if (x.rAST.getClass() == ExprSequence.class) {
-	   write(", ");
-	   x.rAST.accept(this);
-        }
+	write(", ");
+	x.rAST.accept(this);
     }
 
     public void visit(ID x) {
@@ -354,7 +324,7 @@ public class UnparseVisitor implements Visitor {
     } 
 
     public void visit(StringLiteral x) {
-	write("\"" + x.Lexeme + "\"");
+	write(x.Lexeme);
     } 
 
     public void visit(IntType x) {

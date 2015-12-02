@@ -47,6 +47,10 @@ public class TreePrinterVisitor implements Visitor {
 	indent--;
     }
 
+    public void visit(TypeDecl x) {
+        assert(false); // Can only occur in the StdEnvironment AST!
+   }
+
     public void visit(FormalParamDecl x) {
 	write("FormalParamDecl\n");
 	indent++;
@@ -127,12 +131,12 @@ public class TreePrinterVisitor implements Visitor {
 	indent--;
     }
 
-    public void visit(EmptyCompoundStmt x) {
-	write("EmptyCompoundStmt\n");
-    }
-
     public void visit(EmptyStmt x) {
 	write("EmptyStmt\n");
+    }
+
+    public void visit(EmptyCompoundStmt x) {
+	write("EmptyCompoundStmt\n");
     }
 
     public void visit(CallStmt x) {
@@ -147,7 +151,7 @@ public class TreePrinterVisitor implements Visitor {
 	indent++;
         x.tAST.accept(this);
         x.idAST.accept(this);
-        x.eAST.accept(this);
+	x.eAST.accept(this);
 	indent--;
     }
 
@@ -312,10 +316,6 @@ public class TreePrinterVisitor implements Visitor {
 
     public void visit(ArrayType x) {
 	write("ArrayType\n");
-        indent++;
-        x.astType.accept(this);
-        x.astExpr.accept(this);
-        indent--;
     }
 
     public void visit(ErrorType x) {

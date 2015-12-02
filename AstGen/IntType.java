@@ -12,4 +12,20 @@ public class IntType extends Type {
 	v.visit(this);
     }
 
+    public boolean Tequal (Type t) {
+	if (t != null && t instanceof ErrorType)
+	    return true;
+	else
+	    return (t != null && t instanceof IntType);
+    }
+
+    public boolean AssignableTo (Type t) {
+	//IntType assignable to t ?
+	if (t != null && t instanceof ErrorType)
+	    return true;
+	else
+	    return (t != null &&
+		    ((t instanceof IntType) || (t instanceof FloatType)));
+    }
+
 }

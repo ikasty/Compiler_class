@@ -10,6 +10,7 @@ public interface Visitor {
     void visit(FunDecl x);
 
     void visit(VarDecl x);
+    void visit(TypeDecl x);
     void visit(FormalParamDecl x);
     void visit(FormalParamDeclSequence x);
     void visit(EmptyFormalParamDecl x);

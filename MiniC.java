@@ -3,35 +3,40 @@ package MiniC;
 import MiniC.Scanner.Scanner;
 import MiniC.Scanner.SourceFile;
 import MiniC.Parser.Parser;
+import MiniC.SemanticAnalysis.SemanticAnalysis;
+import MiniC.StdEnvironment;
 import MiniC.AstGen.Program;
 import MiniC.TreeDrawer.Drawer;
 import MiniC.TreePrinter.Printer;
 import MiniC.Unparser.Unparser;
 
-public class MiniC {
+public class MiniC{
 
     private static Scanner scanner;
     private static Parser parser;
+    private static SemanticAnalysis sem;
     private static ErrorReporter reporter;
     private static Drawer drawer;
     private static Printer printer;
     private static Unparser unparser;
+    private static StdEnvironment stdenv;
     /* The abstract syntax tree representing
      * the source program:
      */
     private static Program AST;
     //commandline args:
     private static String sourceName;
-    private static boolean DrawTree, DrawTreePlusPos, PrintTree, UnparseTree;
+    private static boolean DrawTree1, DrawTree2, DrawStdEnvTree, PrintTree, UnparseTree;
     private static String PrintTreeF, UnparseTreeF;
 
 
     static void compileProgram (String sourceName) {
+
         System.out.println("********** " +
                            "MiniC Compiler" +
                            " **********");
 
-        System.out.println("Syntax Analysis ...");
+
         SourceFile source = new SourceFile(sourceName);
 
         if (source == null) {
@@ -47,23 +52,40 @@ public class MiniC {
          */
         //scanner.enableDebugging();
         reporter = new ErrorReporter();
+	stdenv   = new StdEnvironment();
         parser   = new Parser(scanner, reporter);
+	sem      = new SemanticAnalysis(reporter);
         drawer   = new Drawer();
 	printer  = new Printer();
 	unparser = new Unparser();
+
+	if(DrawStdEnvTree) {
+            Drawer envdrawer = new Drawer();
+	    envdrawer.draw(stdenv.AST);
+	}
+
+        System.out.println("Syntax Analysis ...");
         AST = parser.parse();	    // 1st pass
 
-	boolean successful = (reporter.numErrors == 0);
-        if (successful) {
+        if (reporter.numErrors == 0) {
 	    if(PrintTree) {
 		printer.print(AST, PrintTreeF);
 	    }
 	    if(UnparseTree) {
 		unparser.unparse(AST, UnparseTreeF);
 	    }
-	    if(DrawTree || DrawTreePlusPos) {
-		drawer.draw(AST, DrawTreePlusPos);
+	    if(DrawTree1) {
+		drawer.draw(AST);
             }
+            System.out.println ("Semantic Analysis ...");
+            sem.check(AST);	// 2nd pass
+	    if(DrawTree2) {
+               drawer.draw(AST);
+	    }
+	}
+
+	boolean successful = (reporter.numErrors == 0);
+	if(successful) {
 	    System.out.println("Compilation was successful.");
 	} else {
             System.out.println("Compilation was unsuccessful.");
@@ -71,17 +93,19 @@ public class MiniC {
     }
 
     public static void usage() {
-	System.out.println("Usage: MiniC filename");
-	System.out.println("Options: -ast to draw the AST");
-	System.out.println("Options: -astp to draw the AST plus source pos"); 
-	System.out.println("Options: -t <file> to dump the AST to <file>");
-	System.out.println("Options: -u <file> to unparse the AST to <file>");
+	System.out.println("Usage: MiniC [options] filename");
+	System.out.println("Option: -ast1 to draw the AST before semantic analysis");
+	System.out.println("Option: -ast2 to draw the AST after semantic analysis");
+	System.out.println("Option: -envast to draw the StdEnvironment AST"); 
+	System.out.println("Option: -t <file> to dump the AST to <file>");
+	System.out.println("Option: -u <file> to unparse the AST to <file>");
 	System.exit(1);
     }
 
     public static void processCmdLine(String[] args) {
-	DrawTree = false;
-        DrawTreePlusPos = false;
+	DrawTree1 = false;
+	DrawTree2 = false;
+	DrawStdEnvTree = false;
 	PrintTree = false;
 	PrintTreeF = "";
 	UnparseTree = false;
@@ -89,11 +113,14 @@ public class MiniC {
         sourceName = "";
 	int arg_index = 0;
 	while (arg_index < args.length) {
-	    if (args[arg_index].equals("-ast")) {
-		DrawTree = true;
+	    if (args[arg_index].equals("-ast1")) {
+		DrawTree1 = true;
 		arg_index++;
-	    } else if (args[arg_index].equals("-astp")) {
-		DrawTreePlusPos = true;
+            } else if (args[arg_index].equals("-ast2")) {
+		DrawTree2 = true;
+		arg_index++;
+	    } else if (args[arg_index].equals("-envast")) {
+		DrawStdEnvTree = true;
 		arg_index++;
 	    } else if (args[arg_index].equals("-t")) {
 		PrintTree = true;
@@ -116,6 +143,10 @@ public class MiniC {
 	    } else {
 		sourceName = args[arg_index];
 		arg_index++;
+                if (arg_index < args.length) {
+                   // After the input source file no arg is allowed:
+                   usage();
+                }
 	    }
 	}
 	if (sourceName.equals("")) {

@@ -5,7 +5,9 @@ import java.awt.event.*;
 import javax.swing.*;
 
 class DrawerFrame extends JFrame {
-  public static final long serialVersionUID = 1L;
+
+    public static final long serialVersionUID = 1L;
+
   public DrawerFrame (JPanel panel) {
     setSize(300, 200);
     Toolkit tk = Toolkit.getDefaultToolkit();

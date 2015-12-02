@@ -12,4 +12,15 @@ public class ErrorType extends Type {
 	v.visit(this);
     }
 
+    public boolean Tequal (Type t) {
+	if (t != null && t instanceof ErrorType)
+	    return true;
+	else
+	    return (t != null && t instanceof ErrorType);
+    }
+
+    public boolean AssignableTo (Type t) {
+	return true;
+    }
+
 }

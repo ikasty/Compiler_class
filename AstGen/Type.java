@@ -8,4 +8,8 @@ public abstract class Type extends AST {
 	super (pos);
     }
 
+    public abstract boolean Tequal(Type t);
+
+    public abstract boolean AssignableTo(Type t);
+
 }

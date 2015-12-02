@@ -14,7 +14,7 @@ public class Drawer {
 
     // Draw the AST representing a complete program.
 
-    public void draw(Program ast, boolean draw_pos) {
+    public void draw(Program ast) {
 	AST = ast;
 	panel = new DrawerPanel(this);
 	frame = new DrawerFrame(panel);
@@ -24,7 +24,7 @@ public class Drawer {
 
 	FontMetrics fontMetrics = frame.getFontMetrics(font);
 
-	LayoutVisitor lv = new LayoutVisitor(fontMetrics, draw_pos);
+	LayoutVisitor lv = new LayoutVisitor(fontMetrics);
 	AST.accept(lv);
 	Drawing = lv.Tree;
 	Drawing.position(new Point(10, 10));

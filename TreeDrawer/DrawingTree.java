@@ -30,6 +30,7 @@ public class DrawingTree {
     }
 
     private final int FIXED_FONT_HEIGHT = 10;
+    //private final int FIXED_FONT_ASCENT = 3;
     private final Color nodeColor = new Color(255,255,255);//250, 220, 100);
 
     public void paint (Graphics graphics) {
