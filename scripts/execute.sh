@@ -1,3 +1,3 @@
 #!/bin/bash
 
-java MiniC.MiniC -t ./result.ast ./Parser/tst/base/AST_testcases/c$1.mc
+java MiniC.MiniC ./SemanticAnalysis/tst/base/testcases/c$1.mc
