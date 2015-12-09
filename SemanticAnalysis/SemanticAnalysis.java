@@ -588,7 +588,7 @@ public class SemanticAnalysis implements Visitor {
                             }
                         } else {
                             // Error 13
-                            reporter.reportError(errMsg[13], "cannot assign this expression", ((ExprSequence)expSequence).rAST.pos);
+                            reporter.reportError(errMsg[13], "cannot assign this expression", ((ExprSequence)expSequence).lAST.pos);
                         }
 
                         expSequence = ((ExprSequence)expSequence).rAST;
@@ -616,7 +616,7 @@ public class SemanticAnalysis implements Visitor {
                         }
                     } else {
                         // Error 6
-                        reporter.reportError(errMsg[6], "cannot assign this value", x.eAST.pos);
+                        reporter.reportError(errMsg[6], "cannot assign this value", x.pos);
                     }
                 }
             }
@@ -628,14 +628,14 @@ public class SemanticAnalysis implements Visitor {
         // report Error 2.
         if ( !scopeStack.enter(idOfDecl(x), x) ) {
             // Error 2
-            reporter.reportError(errMsg[2], idOfDecl(x) + " duplicated.", x.pos);
+            reporter.reportError(errMsg[2], idOfDecl(x) + " duplicated.", x.idAST.pos);
         }
 
         // STEP 3:
         // Check that the variable is not of type void or void[]. 
         // Report error messages 3 and 4 respectively:
         if (x.tAST.Tequal(StdEnvironment.voidType)) {
-            reporter.reportError(errMsg[3], "", x.idAST.pos);
+            reporter.reportError(errMsg[3], "", x.pos);
         }
 
         if ((x.tAST instanceof ArrayType) &&
