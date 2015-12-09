@@ -4,6 +4,7 @@ import MiniC.Scanner.Scanner;
 import MiniC.Scanner.SourceFile;
 import MiniC.Parser.Parser;
 import MiniC.SemanticAnalysis.SemanticAnalysis;
+import MiniC.CodeGen.Emitter;
 import MiniC.StdEnvironment;
 import MiniC.AstGen.Program;
 import MiniC.TreeDrawer.Drawer;
@@ -15,6 +16,7 @@ public class MiniC{
     private static Scanner scanner;
     private static Parser parser;
     private static SemanticAnalysis sem;
+    private static Emitter emitter;
     private static ErrorReporter reporter;
     private static Drawer drawer;
     private static Printer printer;
@@ -55,6 +57,7 @@ public class MiniC{
 	stdenv   = new StdEnvironment();
         parser   = new Parser(scanner, reporter);
 	sem      = new SemanticAnalysis(reporter);
+        emitter  = new Emitter(sourceName, reporter);
         drawer   = new Drawer();
 	printer  = new Printer();
 	unparser = new Unparser();
@@ -82,6 +85,10 @@ public class MiniC{
 	    if(DrawTree2) {
                drawer.draw(AST);
 	    }
+            if (reporter.numErrors == 0) {
+               System.out.println ("Code Generation ...");
+               emitter.genCode(AST);
+            }
 	}
 
 	boolean successful = (reporter.numErrors == 0);

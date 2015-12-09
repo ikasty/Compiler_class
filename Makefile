@@ -36,6 +36,7 @@ JC = javac
 # so that the same line can continue over several lines 
 
 SRC = \
+    lang/System.java \
     ErrorReporter.java \
     TreeDrawer/DrawerFrame.java \
     TreeDrawer/Polygon.java \
@@ -55,6 +56,9 @@ SRC = \
     SemanticAnalysis/IdEntry.java \
     SemanticAnalysis/ScopeStack.java \
     SemanticAnalysis/SemanticAnalysis.java \
+    CodeGen/Emitter.java \
+    CodeGen/Frame.java \
+    CodeGen/JVM.java \
     Unparser/UnparseVisitor.java \
     Unparser/Unparser.java \
     MiniC.java \
