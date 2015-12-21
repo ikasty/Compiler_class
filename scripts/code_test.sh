@@ -34,7 +34,7 @@ do
              diff -u --ignore-all-space --ignore-blank-lines $sol/${f}.txt $ans/res_$f > $ans/diff_$f
              if [ "$?" -eq 0 ]
              then
-                 echo -n "+"
+                 echo "+ $f"
                  echo "$f succeded" >> $report
                  rm -rf $ans/res_$f $ans/diff_$f $f.j $f.class
                  ok=$(( $ok + 1 ))
