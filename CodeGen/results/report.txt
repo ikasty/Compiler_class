@@ -1,0 +1,13 @@
+Codge Generation Test Report
+generated Tue Dec 22 14:02:01 KST 2015
+Assignment succeded
+Coercion succeded
+euclid succeded
+factorial succeded
+fibonacci succeded
+FunctionCall succeded
+HelloWorld succeded
+If succeded
+Intliteral succeded
+Literals succeded
+Shortcircuit succeded

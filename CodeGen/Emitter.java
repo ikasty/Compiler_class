@@ -274,13 +274,16 @@ public class Emitter implements Visitor {
           VarDecl D = (VarDecl) d;
           assert (d.isGlobal());
           Type T= typeOfDecl (D);
-          if (T.Tequal(StdEnvironment.intType)
-              || T.Tequal(StdEnvironment.boolType)) {
-             emit(JVM.ICONST_0);
+
+          if (!(D.eAST instanceof EmptyExpr)) {
+              D.eAST.accept(this);
+          } else if (T.Tequal(StdEnvironment.intType) ||
+                     T.Tequal(StdEnvironment.boolType)) {
+              emit(JVM.ICONST_0);
           } else if(T.Tequal(StdEnvironment.floatType)) {
-             emit(JVM.FCONST_0);
+              emit(JVM.FCONST_0);
           } else {
-             assert(false);
+              assert(false);
           }
           emitStaticVariableReference(D.idAST, D.tAST, true); 
        }
@@ -663,9 +666,6 @@ public class Emitter implements Visitor {
     }
 
     public void visit(VarDecl x) {
-        x.tAST.accept(this);
-        x.idAST.accept(this);
-        x.eAST.accept(this);
         //     if this variable declaration declares a local variable, then
         //     you have to allocate a new local variable index from "frame"
         //     and assign it to x.index.
@@ -673,6 +673,10 @@ public class Emitter implements Visitor {
         //                        isGlobal()
         //                        frame.getNewLocalVarIndex
         if (!x.isGlobal()) {
+            x.tAST.accept(this);
+            x.idAST.accept(this);
+            x.eAST.accept(this);
+            
             x.index = frame.getNewLocalVarIndex();
             Type T = x.tAST;
 
