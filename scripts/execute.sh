@@ -6,7 +6,7 @@ echo "=================="
 echo ""
 
 echo "execute.sh] Make jasmin code..."
-java -ea MiniC.MiniC $1.mc
+java -ea MiniC.MiniC -t $1.t $1.mc
 
 if [ -f $1.j ]
 then
