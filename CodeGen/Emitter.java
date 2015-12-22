@@ -253,7 +253,8 @@ public class Emitter implements Visitor {
           emitStaticClassVariableDeclaration(SD.D2);
        } else if (d instanceof VarDecl) {
           VarDecl D = (VarDecl) d;
-          assert (d.isGlobal());
+          assert (GlobalScope);
+          d.setGlobal();
           Type T= typeOfDecl (D);
           emit (".field static " + D.idAST.Lexeme + " "
                 + getTypeDescriptorLabel(T));
@@ -554,7 +555,7 @@ public class Emitter implements Visitor {
             //                         emitFSTORE()
             //
             if (D.isGlobal()) {
-                // TBD: set global assign
+                emitStaticVariableReference(V.Ident, T, true);
             } else {
                 if      (T.Tequal(StdEnvironment.intType)
                       || T.Tequal(StdEnvironment.boolType))  emitISTORE(D.index);
@@ -582,7 +583,7 @@ public class Emitter implements Visitor {
         x.thenAST.accept(this);
         
         if (x.elseAST != null) {
-            emit("goto " + getLabelString(L2));
+            emit(JVM.GOTO + " " + getLabelString(L2));
         }
 
         emitLabel(L1);
@@ -605,7 +606,7 @@ public class Emitter implements Visitor {
         x.eAST.accept(this);
         emit("ifeq " + getLabelString(L2));
         x.stmtAST.accept(this);
-        emit("goto " + getLabelString(L1));
+        emit(JVM.GOTO + " " + getLabelString(L1));
 
         emitLabel(L2);
     }
@@ -628,7 +629,7 @@ public class Emitter implements Visitor {
 
         x.stmtAST.accept(this);
         x.e3AST.accept(this);
-        emit("goto " + getLabelString(L1)); //Loop
+        emit(JVM.GOTO + " " + getLabelString(L1)); //Loop
 
         emitLabel(L2);
     }
@@ -713,7 +714,7 @@ public class Emitter implements Visitor {
         Type T = typeOfDecl (D);
 
         if (D.isGlobal()) {
-            //TBD: your code goes here...
+            emitStaticVariableReference(x.Ident, T, false);
         } else {
             if      (T.Tequal(StdEnvironment.intType)
                   || T.Tequal(StdEnvironment.boolType))  emitILOAD(D.index);
@@ -779,7 +780,7 @@ public class Emitter implements Visitor {
             int L1 = frame.getNewLabel();
             int L2 = frame.getNewLabel();
 
-            //TBD: implement the code template for && short circuit evaluation
+            //     implement the code template for && short circuit evaluation
             //     from the lecture slides.
             x.lAST.accept(this);
             emit("ifeq " + getLabelString(L1));
@@ -787,7 +788,7 @@ public class Emitter implements Visitor {
             emit("ifeq " + getLabelString(L1));
             
             emitICONST(1);
-            emit("goto " + getLabelString(L2));
+            emit(JVM.GOTO + " " + getLabelString(L2));
 
             emitLabel(L1);
             emitICONST(0);
@@ -799,7 +800,7 @@ public class Emitter implements Visitor {
             int L1 = frame.getNewLabel();
             int L2 = frame.getNewLabel();
 
-            //TBD: implement || short circuit evaluation.
+            //     implement || short circuit evaluation.
             //     Similar to &&, you may use a Java example to figure it out..
             x.lAST.accept(this);
             emit("ifne " + getLabelString(L1));
@@ -807,7 +808,7 @@ public class Emitter implements Visitor {
             emit("ifne " + getLabelString(L1));
             
             emitICONST(1);
-            emit("goto " + getLabelString(L2));
+            emit(JVM.GOTO + " " + getLabelString(L2));
 
             emitLabel(L1);
             emitICONST(0);
@@ -830,20 +831,34 @@ public class Emitter implements Visitor {
             int L2 = frame.getNewLabel();
 
             if (isFloat) {
-                //TBD: switch문을 써서 fcmpg나 fcmpl 사용
-            }
-            
-            switch (Op) {
-                case ">":  emit("if_icmpgt " + getLabelString(L1)); break;
-                case "<":  emit("if_icmplt " + getLabelString(L1)); break;
-                case ">=": emit("if_icmpge " + getLabelString(L1)); break;
-                case "<=": emit("if_icmple " + getLabelString(L1)); break;
-                case "==": emit("if_icmpeq " + getLabelString(L1)); break;
-                case "!=": emit("if_icmpne " + getLabelString(L1)); break;
+                switch (Op) {
+                    case "<": case ">=": case "==": case "!=":
+                    emit("fcmpg"); break;
+                    case ">": case "<=":
+                    emit("fcmpl"); break;
+                }
+
+                switch (Op) {
+                    case ">":  emit(JVM.IFGT + " " + getLabelString(L1)); break;
+                    case "<":  emit(JVM.IFLT + " " + getLabelString(L1)); break;
+                    case ">=": emit(JVM.IFGE + " " + getLabelString(L1)); break;
+                    case "<=": emit(JVM.IFLE + " " + getLabelString(L1)); break;
+                    case "==": emit(JVM.IFEQ + " " + getLabelString(L1)); break;
+                    case "!=": emit(JVM.IFNE + " " + getLabelString(L1)); break;
+                }
+            } else {
+                switch (Op) {
+                    case ">":  emit(JVM.IF_ICMPGT + " " + getLabelString(L1)); break;
+                    case "<":  emit(JVM.IF_ICMPLT + " " + getLabelString(L1)); break;
+                    case ">=": emit(JVM.IF_ICMPGE + " " + getLabelString(L1)); break;
+                    case "<=": emit(JVM.IF_ICMPLE + " " + getLabelString(L1)); break;
+                    case "==": emit(JVM.IF_ICMPEQ + " " + getLabelString(L1)); break;
+                    case "!=": emit(JVM.IF_ICMPNE + " " + getLabelString(L1)); break;
+                }
             }
 
             emitICONST(0);
-            emit("goto " + getLabelString(L2));
+            emit(JVM.GOTO + " " + getLabelString(L2));
             emitLabel(L1);
             emitICONST(1);
             emitLabel(L2);
@@ -889,14 +904,14 @@ public class Emitter implements Visitor {
         case "!":
             int L1 = frame.getNewLabel();
             int L2 = frame.getNewLabel();
-            emit("ifne " + getLabelString(L1));
+            emit(JVM.IFNE + " " + getLabelString(L1));
             emitICONST(1);
-            emit("goto " + getLabelString(L2));
+            emit(JVM.GOTO + " " + getLabelString(L2));
             emitLabel(L1);
             emitICONST(0);
             emitLabel(L2);
             break;
-        case "i2f": emit("i2f"); break;
+        case "i2f": emit(JVM.I2F); break;
         default: assert(false);
         }
     }
