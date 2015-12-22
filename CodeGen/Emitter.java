@@ -674,6 +674,18 @@ public class Emitter implements Visitor {
         //                        frame.getNewLocalVarIndex
         if (!x.isGlobal()) {
             x.index = frame.getNewLocalVarIndex();
+            Type T = x.tAST;
+
+            if (!(x.eAST instanceof EmptyExpr)) {
+                if (T.Tequal(StdEnvironment.intType) ||
+                    T.Tequal(StdEnvironment.boolType)) {
+                    emitISTORE(x.index);
+                } else if (T.Tequal(StdEnvironment.floatType)) {
+                    emitFSTORE(x.index);
+                } else {
+                    assert(false);
+                }
+            }
         }
     }
 
